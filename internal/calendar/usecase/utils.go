@@ -2,8 +2,11 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"html"
+	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/pt010104/Hcmus-Moodle-Telegram/internal/models"
@@ -93,4 +96,19 @@ func (uc implUseCase) createMsgNotification(ctx context.Context, notifications [
 
 	return msgTexts
 
+}
+
+func (uc implUseCase) extractEventTime(formattedTime string) (time.Time, error) {
+	re := regexp.MustCompile(`time=(\d+)`)
+	matches := re.FindStringSubmatch(formattedTime)
+	if len(matches) < 2 {
+		return time.Time{}, errors.New("could not find time parameter in formattedTime")
+	}
+	timestampStr := matches[1]
+	timestamp, err := strconv.ParseInt(timestampStr, 10, 64)
+	if err != nil {
+		return time.Time{}, err
+	}
+	eventTime := time.Unix(timestamp, 0)
+	return eventTime, nil
 }

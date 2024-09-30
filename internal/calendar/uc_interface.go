@@ -7,6 +7,6 @@ import (
 )
 
 type UseCase interface {
-	GetFromCalendar(ctx context.Context, input GetFromCalendarInput) ([]models.Calendar, error)
+	GetFromCalendar(ctx context.Context) ([]models.Calendar, error)
 	GetFromNotification(ctx context.Context, input GetFromNotificationInput) ([]models.Notification, error)
 }

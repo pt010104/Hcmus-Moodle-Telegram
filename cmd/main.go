@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/pt010104/Hcmus-Moodle-Telegram/config"
@@ -40,7 +41,6 @@ func main() {
 
 	db := client.Database(cfg.Mongo.Database)
 
-	// Initialize the logger
 	l := pkgLog.InitializeZapLogger(pkgLog.ZapConfig{
 		Level:    cfg.Logger.Level,
 		Mode:     cfg.Logger.Mode,
@@ -56,34 +56,48 @@ func main() {
 	telegramUC.SendMessage(ctx, "Bot started new code at "+util.Now().Format("2006-01-02 15:04:05"))
 
 	for {
+		var wg sync.WaitGroup
+		var mu sync.Mutex
+		var calendarErr error
+		var notificationErr error
 
-		// calendarInput := calendar.GetFromCalendarInput{
-		// 	Year:  "2024",
-		// 	Month: "7",
-		// 	Day:   "25",
-		// }
-		today := util.Now()
+		wg.Add(2)
 
-		calendarInput := calendar.GetFromCalendarInput{
-			Year:  today.Format("2006"),
-			Month: today.Format("1"),
-			Day:   today.Format("2"),
-		}
-		_, err := calendarUC.GetFromCalendar(ctx, calendarInput)
-		if err != nil {
-			l.Error(ctx, "main.GetFromCalendar", err.Error())
-			continue
+		go func() {
+			defer wg.Done()
+			_, err := calendarUC.GetFromCalendar(ctx)
+			if err != nil {
+				l.Error(ctx, "main.GetFromCalendar", err.Error())
+				mu.Lock()
+				calendarErr = err
+				mu.Unlock()
+			}
+		}()
+
+		go func() {
+			defer wg.Done()
+			notificationInput := calendar.GetFromNotificationInput{
+				Limit:    3,
+				Offset:   0,
+				UserIDTo: "4248",
+			}
+			_, err := calendarUC.GetFromNotification(ctx, notificationInput)
+			if err != nil {
+				l.Error(ctx, "main.GetFromNotification", err.Error())
+				mu.Lock()
+				notificationErr = err
+				mu.Unlock()
+			}
+		}()
+
+		wg.Wait()
+
+		if calendarErr != nil {
+			l.Error(ctx, "Error occurred in GetFromCalendar", calendarErr.Error())
 		}
 
-		notificationInput := calendar.GetFromNotificationInput{
-			Limit:    3,
-			Offset:   0,
-			UserIDTo: "4248",
-		}
-		_, err = calendarUC.GetFromNotification(ctx, notificationInput)
-		if err != nil {
-			l.Error(ctx, "main.GetFromNotification", err.Error())
-			continue
+		if notificationErr != nil {
+			l.Error(ctx, "Error occurred in GetFromNotification", notificationErr.Error())
 		}
 
 		time.Sleep(15 * time.Minute)
