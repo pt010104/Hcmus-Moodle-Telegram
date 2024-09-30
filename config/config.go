@@ -1,10 +1,7 @@
 package config
 
 import (
-	"fmt"
-
 	"github.com/caarlos0/env/v9"
-	"github.com/joho/godotenv"
 )
 
 type HTTPServerConfig struct {
@@ -44,13 +41,8 @@ type Config struct {
 }
 
 func Load() (*Config, error) {
-	err := godotenv.Load()
-	if err != nil {
-		fmt.Println("Error loading .env file")
-	}
-
 	cfg := &Config{}
-	err = env.Parse(cfg)
+	err := env.Parse(cfg)
 	if err != nil {
 		return nil, err
 	}

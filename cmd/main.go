@@ -84,6 +84,6 @@ func main() {
 			return
 		}
 
-		time.Sleep(30 * time.Minute)
+		time.Sleep(5 * time.Minute)
 	}
 }
