@@ -1,6 +1,6 @@
 module github.com/pt010104/Hcmus-Moodle-Telegram
 
-go 1.21.12
+go 1.23
 
 require (
 	github.com/bytedance/sonic v1.11.6 // indirect
