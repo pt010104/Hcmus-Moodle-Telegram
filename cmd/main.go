@@ -70,7 +70,7 @@ func main() {
 		_, err := calendarUC.GetFromCalendar(ctx, calendarInput)
 		if err != nil {
 			l.Error(ctx, "main.GetFromCalendar", err.Error())
-			return
+			continue
 		}
 
 		notificationInput := calendar.GetFromNotificationInput{
@@ -81,7 +81,7 @@ func main() {
 		_, err = calendarUC.GetFromNotification(ctx, notificationInput)
 		if err != nil {
 			l.Error(ctx, "main.GetFromNotification", err.Error())
-			return
+			continue
 		}
 
 		time.Sleep(1 * time.Minute)
