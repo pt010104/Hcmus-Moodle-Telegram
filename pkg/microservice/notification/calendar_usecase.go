@@ -3,7 +3,6 @@ package notification
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/url"
 
 	"github.com/pt010104/Hcmus-Moodle-Telegram/pkg/curl"
@@ -65,8 +64,6 @@ func (uc implUseCase) GetFromCalendar(ctx context.Context, input GetFromCalendar
 	calendar := Calendar{
 		Events: data.Events,
 	}
-
-	fmt.Println(calendar)
 
 	return calendar, nil
 }

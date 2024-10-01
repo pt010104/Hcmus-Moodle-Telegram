@@ -13,4 +13,5 @@ type Logger interface {
 	Errorf(ctx context.Context, templete string, arg ...any)
 	Fatal(ctx context.Context, arg ...any)
 	Fatalf(ctx context.Context, templete string, arg ...any)
+	ResetLogger()
 }

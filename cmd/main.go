@@ -54,8 +54,9 @@ func main() {
 	calendarUC := calendarUC.New(l, notificationSrv, db, telegramUC)
 
 	telegramUC.SendMessage(ctx, "Bot started new code at "+util.Now().Format("2006-01-02 15:04:05"))
-
 	for {
+		l.ResetLogger()
+
 		var wg sync.WaitGroup
 		var mu sync.Mutex
 		var calendarErr error

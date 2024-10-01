@@ -95,7 +95,7 @@ func (uc implUseCase) GetFromCalendar(ctx context.Context) ([]models.Calendar, e
 
 					calendarOutputs = append(calendarOutputs, c)
 				} else {
-					uc.l.Info(ctx, "usecase.GetFromCalendar.EventExists", fmt.Sprintf("Event with ID %d already exists", c.ID))
+					uc.l.Info(ctx, "usecase.GetFromCalendar.EventExists", fmt.Sprintf(" Event with ID %d already exists", c.ID))
 				}
 			}
 
@@ -163,7 +163,7 @@ func (uc implUseCase) GetFromNotification(ctx context.Context, input calendar.Ge
 
 				notificationOutputs = append(notificationOutputs, n)
 			} else {
-				uc.l.Info(ctx, "usecase.GetFromNotification.NotificationExists", fmt.Sprintf("Thông báo với ID %d đã tồn tại", n.ID))
+				uc.l.Info(ctx, "usecase.GetFromNotification.NotificationExists ", n.ID)
 			}
 		}
 
