@@ -17,13 +17,7 @@ func (uc implUseCase) GetFromCalendar(ctx context.Context) ([]models.Calendar, e
 
 	date := util.Now()
 
-	var dateEnd time.Time
-
-	if date.Day() < 29 {
-		dateEnd = date.AddDate(0, 0, 14)
-	} else {
-		dateEnd = time.Date(date.Year(), date.Month()+1, 5, 0, 0, 0, 0, date.Location())
-	}
+	dateEnd := date.AddDate(0, 0, 20)
 
 	var allCalendarOutputs []models.Calendar
 
@@ -54,6 +48,7 @@ func (uc implUseCase) GetFromCalendar(ctx context.Context) ([]models.Calendar, e
 				CourseName:    event.Course.FullName,
 				CourseID:      event.Course.ID,
 				URL:           event.URL,
+				Deadline:      eventTime,
 			})
 
 			now := time.Now()

@@ -57,13 +57,6 @@ func (uc implUseCase) createMsgCalendarForTelegram(ctx context.Context, events [
 
 }
 
-// type Notification struct {
-// 	ID          int    `bson:"_id"`
-// 	Subject     string `bson:"subject"`
-// 	FullMessage string `bson:"full_message"`
-// 	TimeCreated string `json:"timecreated"`
-// }
-
 func (uc implUseCase) createMsgNotification(ctx context.Context, notifications []models.Notification) []string {
 
 	msgTexts := make([]string, 0)
