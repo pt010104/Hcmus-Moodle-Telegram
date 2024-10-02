@@ -32,12 +32,12 @@ func (uc implUseCase) GetFromCalendar(ctx context.Context) ([]models.Calendar, e
 		}
 
 		var calendarEvents []models.Calendar
+		var eventTime time.Time
 
 		for _, event := range calendarSrv.Events {
-			eventTime, err := uc.extractEventTime(event.FormattedTime)
+			eventTime, err = uc.extractEventTime(event.FormattedTime)
 			if err != nil {
 				uc.l.Error(ctx, "Failed to extract event time", err.Error())
-				continue
 			}
 
 			calendarEvents = append(calendarEvents, models.Calendar{
@@ -48,26 +48,30 @@ func (uc implUseCase) GetFromCalendar(ctx context.Context) ([]models.Calendar, e
 				CourseName:    event.Course.FullName,
 				CourseID:      event.Course.ID,
 				URL:           event.URL,
-				Deadline:      eventTime,
 			})
 
-			now := time.Now()
-			timeDiff := eventTime.Sub(now)
-			if timeDiff > 0 && timeDiff <= 2*time.Hour {
-				messageText := fmt.Sprintf(
-					"<b>Thông báo:</b> có deadline trong 2 tiếng nữa\n"+
-						"<b>Môn:</b> %s\n"+
-						"<b>Deadline:</b> %s\n"+
-						"%s",
-					html.EscapeString(event.Course.FullName),
-					eventTime.Format("2006-01-02 15:04:05"),
-					event.URL,
-				)
-				err := uc.telegramUC.SendMessage(ctx, messageText)
-				if err != nil {
-					uc.l.Error(ctx, "Failed to send deadline approaching message to telegram", err)
+			if !eventTime.IsZero() {
+				calendarEvents[len(calendarEvents)-1].Deadline = eventTime
+				now := time.Now()
+				timeDiff := eventTime.Sub(now)
+				if timeDiff > 0 && timeDiff <= 2*time.Hour {
+					messageText := fmt.Sprintf(
+						"<b>Thông báo:</b> có deadline trong 2 tiếng nữa\n"+
+							"<b>Môn:</b> %s\n"+
+							"<b>Deadline:</b> %s\n"+
+							"%s",
+						html.EscapeString(event.Course.FullName),
+						eventTime.Format("2006-01-02 15:04:05"),
+						event.URL,
+					)
+					err := uc.telegramUC.SendMessage(ctx, messageText)
+					if err != nil {
+						uc.l.Error(ctx, "Failed to send deadline approaching message to telegram", err)
+					}
 				}
+
 			}
+
 		}
 
 		if len(calendarEvents) > 0 {

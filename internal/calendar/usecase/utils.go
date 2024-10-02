@@ -39,9 +39,9 @@ func (uc implUseCase) createMsgCalendarForTelegram(ctx context.Context, events [
 		}
 
 		messageText := fmt.Sprintf(
-			"<b>🟢 New:</b> %s\n"+
-				"<b>🟢 Course:</b> %s\n"+
-				"<b>🟢 Deadline:</b> %s\n"+
+			"<b>🟢 </b>%s\n\n"+
+				"<b>🎓 </b> %s\n\n"+
+				"<b>🕘 </b> %s\n\n"+
 				"%s",
 			eventName,
 			eventCourseName,
@@ -75,9 +75,9 @@ func (uc implUseCase) createMsgNotification(ctx context.Context, notifications [
 		timeCreated := time.Unix(notification.TimeCreated, 0).Format("2006-01-02 15:04:05")
 
 		messageText := fmt.Sprintf(
-			"<b>🟢 Subject:\n</b> %s\n"+
-				"<b>🟢 Message:\n</b> %s\n"+
-				"<b>🟢 Created:\n</b> %s",
+			"<b>📢 </b> %s\n\n"+
+				"<b>💬 </b> %s\n\n"+
+				"<b>🗓️ </b> %s\n\n",
 			subject,
 			fullMessage,
 			timeCreated,
