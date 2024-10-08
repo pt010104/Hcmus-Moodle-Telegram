@@ -101,6 +101,6 @@ func main() {
 			l.Error(ctx, "Error occurred in GetFromNotification", notificationErr.Error())
 		}
 
-		time.Sleep(15 * time.Minute)
+		time.Sleep(3 * time.Minute)
 	}
 }
