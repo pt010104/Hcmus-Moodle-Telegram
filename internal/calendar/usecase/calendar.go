@@ -3,19 +3,40 @@ package usecase
 import (
 	"context"
 	"fmt"
-	"html"
 	"time"
 
 	"github.com/pt010104/Hcmus-Moodle-Telegram/internal/calendar"
 	"github.com/pt010104/Hcmus-Moodle-Telegram/internal/models"
 	"github.com/pt010104/Hcmus-Moodle-Telegram/pkg/microservice/notification"
+	"github.com/pt010104/Hcmus-Moodle-Telegram/pkg/mongo"
 	"github.com/pt010104/Hcmus-Moodle-Telegram/util"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
 func (uc implUseCase) GetFromCalendar(ctx context.Context) ([]models.Calendar, error) {
 
-	date := util.Now()
+	var dateTest time.Time
+	var nowTest time.Time
+	var date time.Time
+	var now time.Time
+
+	// dateTest, err := util.StrToDateTime("2024-10-19 00:00:00")
+	// if err != nil {
+	// 	uc.l.Error(ctx, "Failed to convert date string to time", err.Error())
+	// }
+
+	// nowTest, err = util.StrToDateTime("2024-10-19 15:20:00")
+	// if err != nil {
+	// 	uc.l.Error(ctx, "Failed to convert date string to time", err.Error())
+	// }
+
+	if !dateTest.IsZero() && !nowTest.IsZero() {
+		date = dateTest
+		now = nowTest
+	} else {
+		date = util.Now()
+		now = time.Now()
+	}
 
 	dateEnd := date.AddDate(0, 0, 20)
 
@@ -33,6 +54,7 @@ func (uc implUseCase) GetFromCalendar(ctx context.Context) ([]models.Calendar, e
 
 		var calendarEvents []models.Calendar
 		var eventTime time.Time
+		collection := uc.db.Collection("calendar_events")
 
 		for _, event := range calendarSrv.Events {
 			eventTime, err = uc.extractEventTime(event.FormattedTime)
@@ -50,23 +72,60 @@ func (uc implUseCase) GetFromCalendar(ctx context.Context) ([]models.Calendar, e
 				URL:           event.URL,
 			})
 
+			//Reminder Region
 			if !eventTime.IsZero() {
 				calendarEvents[len(calendarEvents)-1].Deadline = eventTime
-				now := time.Now()
+				firstTime := false
+
+				filter := bson.M{"_id": event.ID}
+				evt := models.Calendar{}
+				err := collection.FindOne(ctx, filter).Decode(&evt)
+				if err != nil {
+					if err == mongo.ErrNoDocuments {
+						firstTime = true
+					} else {
+						uc.l.Error(ctx, "usecase.GetFromCalendar.FindOne", err.Error())
+						continue
+					}
+				}
+
+				timeHour := map[string]time.Duration{
+					"12": 12 * time.Hour,
+					"6":  6 * time.Hour,
+					"3":  3 * time.Hour,
+					"1":  1 * time.Hour,
+				}
+				timeRemind := map[string]int{
+					"12": 0,
+					"6":  1,
+					"3":  2,
+					"1":  3,
+				}
+
 				timeDiff := eventTime.Sub(now)
-				if timeDiff > 0 && timeDiff <= 2*time.Hour {
-					messageText := fmt.Sprintf(
-						"<b>Thông báo:</b> có deadline trong 2 tiếng nữa\n"+
-							"<b>Môn:</b> %s\n"+
-							"<b>Deadline:</b> %s\n"+
-							"%s",
-						html.EscapeString(event.Course.FullName),
-						eventTime.Format("2006-01-02 15:04:05"),
-						event.URL,
-					)
-					err := uc.telegramUC.SendMessage(ctx, messageText)
-					if err != nil {
-						uc.l.Error(ctx, "Failed to send deadline approaching message to telegram", err)
+				for k, v := range timeHour {
+					if timeDiff.Hours() > 0 && timeDiff <= v && (firstTime || evt.TimeRemind == timeRemind[k]) {
+						messageText := fmt.Sprintf(
+							"<b>Thông báo:</b> có deadline trong  %s tiếng nữa\n"+
+								"<b>Môn:</b> %s\n"+
+								"<b>Deadline:</b> %s\n"+
+								"%s",
+							k,
+							event.Course.FullName,
+							eventTime.Format("2006-01-02 15:04:05"),
+							event.URL,
+						)
+
+						err := uc.telegramUC.SendMessage(ctx, messageText)
+						if err != nil {
+							uc.l.Error(ctx, "Failed to send deadline approaching message to telegram", err)
+						}
+
+						evt.TimeRemind = timeRemind[k] + 1
+						_, err = collection.UpdateOne(ctx, filter, bson.M{"$set": evt})
+						if err != nil {
+							uc.l.Error(ctx, "usecase.GetFromCalendar.UpdateOne", err.Error())
+						}
 					}
 				}
 
@@ -75,7 +134,6 @@ func (uc implUseCase) GetFromCalendar(ctx context.Context) ([]models.Calendar, e
 		}
 
 		if len(calendarEvents) > 0 {
-			collection := uc.db.Collection("calendar_events")
 			var calendarOutputs []models.Calendar
 
 			for _, c := range calendarEvents {
@@ -87,6 +145,7 @@ func (uc implUseCase) GetFromCalendar(ctx context.Context) ([]models.Calendar, e
 				}
 
 				if count == 0 {
+					c.TimeRemind = 0
 					_, err := collection.InsertOne(ctx, c)
 					if err != nil {
 						uc.l.Error(ctx, "usecase.GetFromCalendar.InsertOne", err.Error())
