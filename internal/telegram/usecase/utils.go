@@ -99,9 +99,15 @@ func (uc implUseCase) handleListDeadlines(ctx context.Context, message *tgbotapi
 	}
 
 	var sb strings.Builder
-	sb.WriteString("Upcoming deadlines:\n")
 	for _, r := range results {
-		sb.WriteString(fmt.Sprintf("- %s (%s) [%s]\n", r.Name, r.Deadline.Format("2006-01-02 15:04:05"), r.CourseName))
+		timeDiff := r.Deadline.Sub(now)
+		diffString := formatTimeDifference(timeDiff)
+
+		sb.WriteString(fmt.Sprintf("- %s\n", r.CourseName))
+		sb.WriteString(fmt.Sprintf("    + %s\n", r.Name))
+		sb.WriteString(fmt.Sprintf("    + %s - %s\n", r.Deadline.Format("2006-01-02 15:04:05"), diffString))
+		sb.WriteString(fmt.Sprintf("    + %s\n", r.URL))
+		sb.WriteString("\n")
 	}
 
 	return uc.sendTextMessage(ctx, message.Chat.ID, sb.String())
@@ -143,10 +149,47 @@ func (uc implUseCase) handleCourseDeadlines(ctx context.Context, message *tgbota
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("Deadlines for course %d:\n", courseID))
+	now := time.Now()
 	for _, r := range results {
-		sb.WriteString(fmt.Sprintf("- %s (%s)\n", r.Name, r.Deadline.Format("2006-01-02 15:04:05")))
+		timeDiff := r.Deadline.Sub(now)
+		diffString := formatTimeDifference(timeDiff)
+
+		sb.WriteString(fmt.Sprintf("- %s\n", r.Name))
+		sb.WriteString(fmt.Sprintf("    + %s - %s\n", r.Deadline.Format("2006-01-02 15:04:05"), diffString))
+		sb.WriteString(fmt.Sprintf("    + %s\n", r.URL))
+		sb.WriteString("\n")
 	}
 
 	return uc.sendTextMessage(ctx, message.Chat.ID, sb.String())
+}
+
+func formatTimeDifference(d time.Duration) string {
+	if d < 0 {
+		d = -d
+	}
+
+	days := int(d.Hours()) / 24
+	hours := int(d.Hours()) % 24
+	minutes := int(d.Minutes()) % 60
+	seconds := int(d.Seconds()) % 60
+
+	var parts []string
+	if days > 0 {
+		parts = append(parts, fmt.Sprintf("%d ngày", days))
+	}
+	if hours > 0 {
+		parts = append(parts, fmt.Sprintf("%d giờ", hours))
+	}
+	if minutes > 0 {
+		parts = append(parts, fmt.Sprintf("%d phút", minutes))
+	}
+	if seconds > 0 {
+		parts = append(parts, fmt.Sprintf("%d giây", seconds))
+	}
+
+	if len(parts) == 0 {
+		return "0 giây"
+	}
+
+	return strings.Join(parts, " ")
 }
