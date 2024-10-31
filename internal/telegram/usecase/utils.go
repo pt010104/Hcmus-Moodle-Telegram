@@ -126,8 +126,13 @@ func (uc implUseCase) handleCourseDeadlines(ctx context.Context, message *tgbota
 
 	collection := uc.db.Collection("calendar_events")
 
+	now := time.Now()
+
 	filter := bson.M{
 		"course_id": courseID,
+		"deadline": bson.M{
+			"$gte": now,
+		},
 	}
 
 	cursor, err := collection.Find(ctx, filter)
@@ -149,7 +154,6 @@ func (uc implUseCase) handleCourseDeadlines(ctx context.Context, message *tgbota
 	}
 
 	var sb strings.Builder
-	now := time.Now()
 	for _, r := range results {
 		timeDiff := r.Deadline.Sub(now)
 		diffString := formatTimeDifference(timeDiff)
