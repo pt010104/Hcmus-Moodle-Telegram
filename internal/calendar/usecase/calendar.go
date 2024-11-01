@@ -90,21 +90,23 @@ func (uc implUseCase) GetFromCalendar(ctx context.Context) ([]models.Calendar, e
 				}
 
 				timeHour := map[string]time.Duration{
+					"24": 24 * time.Hour,
 					"12": 12 * time.Hour,
 					"6":  6 * time.Hour,
 					"3":  3 * time.Hour,
 					"1":  1 * time.Hour,
 				}
 				timeRemind := map[string]int{
-					"12": 0,
-					"6":  1,
-					"3":  2,
-					"1":  3,
+					"24": 0,
+					"12": 1,
+					"6":  2,
+					"3":  3,
+					"1":  4,
 				}
 
 				timeDiff := eventTime.Sub(now)
 				for k, v := range timeHour {
-					if timeDiff.Hours() > 0 && timeDiff <= v && (firstTime || evt.TimeRemind == timeRemind[k]) {
+					if timeDiff.Hours() > 0 && timeDiff <= v && (firstTime || evt.TimeRemind <= timeRemind[k]) {
 						messageText := fmt.Sprintf(
 							"<b>Thông báo:</b> có deadline trong  %s tiếng nữa\n"+
 								"<b>Môn:</b> %s\n"+
