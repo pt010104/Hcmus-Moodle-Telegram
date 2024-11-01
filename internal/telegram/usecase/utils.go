@@ -108,7 +108,7 @@ func (uc implUseCase) handleListDeadlines(ctx context.Context, message *tgbotapi
 
 		sb.WriteString(fmt.Sprintf("🟢 %s\n", r.CourseName))
 		sb.WriteString(fmt.Sprintf("    + %s\n", r.Name))
-		sb.WriteString(fmt.Sprintf("    + %s - %s\n", deadlineLocal.Format("2006-01-02T15:04:05-07:00"), diffString))
+		sb.WriteString(fmt.Sprintf("    + %s - %s\n", deadlineLocal.Format("2006-01-02 15:04:05"), diffString))
 		sb.WriteString(fmt.Sprintf("    + %s\n", r.URL))
 		sb.WriteString("\n")
 	}
@@ -164,7 +164,7 @@ func (uc implUseCase) handleCourseDeadlines(ctx context.Context, message *tgbota
 		dlLocal := r.Deadline.In(location)
 
 		sb.WriteString(fmt.Sprintf("🟢 %s\n", r.Name))
-		sb.WriteString(fmt.Sprintf("    + %s - %s\n", dlLocal.Format("2006-01-02T15:04:05-07:00"), diffString))
+		sb.WriteString(fmt.Sprintf("    + %s - %s\n", dlLocal.Format("2006-01-02 15:04:05"), diffString))
 		sb.WriteString(fmt.Sprintf("    + %s\n", r.URL))
 		sb.WriteString("\n")
 	}
