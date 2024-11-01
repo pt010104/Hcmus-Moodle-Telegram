@@ -98,14 +98,17 @@ func (uc implUseCase) handleListDeadlines(ctx context.Context, message *tgbotapi
 		return uc.sendTextMessage(ctx, message.Chat.ID, "No upcoming deadlines found")
 	}
 
+	location, _ := time.LoadLocation("Asia/Ho_Chi_Minh")
+
 	var sb strings.Builder
 	for _, r := range results {
+		deadlineLocal := r.Deadline.In(location)
 		timeDiff := r.Deadline.Sub(now)
 		diffString := formatTimeDifference(timeDiff)
 
 		sb.WriteString(fmt.Sprintf("🟢 %s\n", r.CourseName))
 		sb.WriteString(fmt.Sprintf("    + %s\n", r.Name))
-		sb.WriteString(fmt.Sprintf("    + %s - %s\n", r.Deadline, diffString))
+		sb.WriteString(fmt.Sprintf("    + %s - %s\n", deadlineLocal.Format("2006-01-02T15:04:05-07:00"), diffString))
 		sb.WriteString(fmt.Sprintf("    + %s\n", r.URL))
 		sb.WriteString("\n")
 	}
@@ -153,13 +156,15 @@ func (uc implUseCase) handleCourseDeadlines(ctx context.Context, message *tgbota
 		return uc.sendTextMessage(ctx, message.Chat.ID, "No deadlines found for the course")
 	}
 
+	location, _ := time.LoadLocation("Asia/Ho_Chi_Minh")
 	var sb strings.Builder
 	for _, r := range results {
 		timeDiff := r.Deadline.Sub(now)
 		diffString := formatTimeDifference(timeDiff)
+		dlLocal := r.Deadline.In(location)
 
-		sb.WriteString(fmt.Sprintf("- %s\n", r.Name))
-		sb.WriteString(fmt.Sprintf("    + %s - %s\n", r.Deadline, diffString))
+		sb.WriteString(fmt.Sprintf("🟢 %s\n", r.Name))
+		sb.WriteString(fmt.Sprintf("    + %s - %s\n", dlLocal.Format("2006-01-02T15:04:05-07:00"), diffString))
 		sb.WriteString(fmt.Sprintf("    + %s\n", r.URL))
 		sb.WriteString("\n")
 	}
