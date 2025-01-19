@@ -5,7 +5,7 @@ This repository is designed to fetch event calendars and send notifications on M
 ## Main Features:
 - **Fetch Calendar Events**: Retrieve and notify users about all calendar events for the entire month.
 - **Daily Notifications**: Pop-up notifications every day about upcoming events.
-- **Deadline Alerts**: Alarm notifications 2 hours before any deadline.
+- **Deadline Alerts**: Alarm notifications 24, 12, 6, 3, 1 hours before any deadline.
 
 ## Installation
 
