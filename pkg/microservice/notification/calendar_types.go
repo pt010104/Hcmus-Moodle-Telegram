@@ -39,6 +39,14 @@ type CalendarRequest struct {
 }
 
 type CalendarResponse struct {
-	Error bool            `json:"error"`
-	Data  json.RawMessage `json:"data"`
+	Error     bool            `json:"error"`
+	Data      json.RawMessage `json:"data,omitempty"`
+	Exception *ErrorException `json:"exception,omitempty"`
+}
+
+type ErrorException struct {
+	Message     string `json:"message"`
+	ErrorCode   string `json:"errorcode"`
+	Link        string `json:"link,omitempty"`
+	MoreInfoURL string `json:"moreinfourl,omitempty"`
 }

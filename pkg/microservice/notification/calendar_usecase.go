@@ -3,6 +3,7 @@ package notification
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/url"
 
 	"github.com/pt010104/Hcmus-Moodle-Telegram/pkg/curl"
@@ -50,6 +51,18 @@ func (uc implUseCase) GetFromCalendar(ctx context.Context, input GetFromCalendar
 	if err := json.Unmarshal([]byte(response), &res); err != nil {
 		uc.l.Error(ctx, "notification.usecase.GetFromCalendar.Unmarshal", err.Error())
 		return Calendar{}, err
+	}
+
+	// Check if there's an error in the response
+	if len(res) == 0 {
+		return Calendar{}, fmt.Errorf("empty response from calendar API")
+	}
+
+	if res[0].Error {
+		if res[0].Exception != nil {
+			return Calendar{}, fmt.Errorf("calendar API error: %s (code: %s)", res[0].Exception.Message, res[0].Exception.ErrorCode)
+		}
+		return Calendar{}, fmt.Errorf("calendar API error: unknown error")
 	}
 
 	var data struct {

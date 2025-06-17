@@ -53,6 +53,18 @@ func (uc implUseCase) GetFromNotification(ctx context.Context, input GetFromNoti
 		return Notification{}, err
 	}
 
+	// Check if there's an error in the response
+	if len(res) == 0 {
+		return Notification{}, fmt.Errorf("empty response from notification API")
+	}
+
+	if res[0].Error {
+		if res[0].Exception != nil {
+			return Notification{}, fmt.Errorf("notification API error: %s (code: %s)", res[0].Exception.Message, res[0].Exception.ErrorCode)
+		}
+		return Notification{}, fmt.Errorf("notification API error: unknown error")
+	}
+
 	var data struct {
 		Events []NotificationEvent `json:"notifications"`
 	}

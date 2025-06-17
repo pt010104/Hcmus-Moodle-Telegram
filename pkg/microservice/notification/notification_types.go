@@ -31,6 +31,7 @@ type NotificationRequest struct {
 	Args       NotificationRequestArgs `json:"args"`
 }
 type NotificationResponse struct {
-	Error bool            `json:"error"`
-	Data  json.RawMessage `json:"data"`
+	Error     bool            `json:"error"`
+	Data      json.RawMessage `json:"data,omitempty"`
+	Exception *ErrorException `json:"exception,omitempty"`
 }
