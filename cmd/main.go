@@ -84,7 +84,7 @@ func main() {
 		l.Fatal(ctx, "Failed to schedule GetFromCalendar", err.Error())
 	}
 
-	_, err = c.AddFunc("@every 10s", func() {
+	_, err = c.AddFunc("@every 3m", func() {
 		l.ResetLogger()
 		l.Info(ctx, "Scheduled Task", "Executing GetFromNotification")
 		notificationInput := calendar.GetFromNotificationInput{

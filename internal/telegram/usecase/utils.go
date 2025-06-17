@@ -100,17 +100,55 @@ func (uc implUseCase) handleListDeadlines(ctx context.Context, message *tgbotapi
 
 	location, _ := time.LoadLocation("Asia/Ho_Chi_Minh")
 
-	var sb strings.Builder
+	// Group deadlines by course for better visualization
+	courseGroups := make(map[string][]models.Calendar)
 	for _, r := range results {
-		deadlineLocal := r.Deadline.In(location)
-		timeDiff := r.Deadline.Sub(now)
-		diffString := formatTimeDifference(timeDiff)
+		courseGroups[r.CourseName] = append(courseGroups[r.CourseName], r)
+	}
 
-		sb.WriteString(fmt.Sprintf("🟢 %s\n", r.CourseName))
-		sb.WriteString(fmt.Sprintf("    + %s\n", r.Name))
-		sb.WriteString(fmt.Sprintf("    + %s - %s\n", deadlineLocal.Format("2006-01-02 15:04:05"), diffString))
-		sb.WriteString(fmt.Sprintf("    + %s\n", r.URL))
-		sb.WriteString("\n")
+	var sb strings.Builder
+	for courseName, deadlines := range courseGroups {
+		// Check if all deadlines in this course are submitted
+		allSubmitted := true
+		for _, d := range deadlines {
+			if !d.IsSubmitted {
+				allSubmitted = false
+				break
+			}
+		}
+
+		// Use green circle for courses with pending deadlines, check mark for all submitted
+		courseIcon := "🟢"
+		if allSubmitted {
+			courseIcon = "✅"
+		}
+
+		sb.WriteString(fmt.Sprintf("%s %s\n", courseIcon, courseName))
+
+		for _, r := range deadlines {
+			deadlineLocal := r.Deadline.In(location)
+			timeDiff := r.Deadline.Sub(now)
+			diffString := formatTimeDifference(timeDiff)
+
+			// Individual deadline status
+			deadlineIcon := "    +"
+			if r.IsSubmitted {
+				deadlineIcon = "    ✅"
+			}
+
+			sb.WriteString(fmt.Sprintf("%s %s\n", deadlineIcon, r.Name))
+			sb.WriteString(fmt.Sprintf("    + %s - %s\n", deadlineLocal.Format("2006-01-02 15:04:05"), diffString))
+
+			// Add submission status text
+			if r.IsSubmitted {
+				sb.WriteString("    + 🎉 Đã nộp bài\n")
+			} else {
+				sb.WriteString("    + ⏰ Chưa nộp\n")
+			}
+
+			sb.WriteString(fmt.Sprintf("    + %s\n", r.URL))
+			sb.WriteString("\n")
+		}
 	}
 
 	return uc.sendTextMessage(ctx, message.Chat.ID, sb.String())
@@ -138,7 +176,10 @@ func (uc implUseCase) handleCourseDeadlines(ctx context.Context, message *tgbota
 		},
 	}
 
-	cursor, err := collection.Find(ctx, filter)
+	opts := options.Find()
+	opts.SetSort(bson.D{{"deadline", 1}})
+
+	cursor, err := collection.Find(ctx, filter, opts)
 	if err != nil {
 		uc.l.Error(ctx, "Failed to find deadlines for course", err.Error())
 		return uc.sendTextMessage(ctx, message.Chat.ID, "Failed to retrieve deadlines for the course")
@@ -158,13 +199,47 @@ func (uc implUseCase) handleCourseDeadlines(ctx context.Context, message *tgbota
 
 	location, _ := time.LoadLocation("Asia/Ho_Chi_Minh")
 	var sb strings.Builder
+
+	// Course name header
+	if len(results) > 0 {
+		// Check if all deadlines are submitted
+		allSubmitted := true
+		for _, r := range results {
+			if !r.IsSubmitted {
+				allSubmitted = false
+				break
+			}
+		}
+
+		courseIcon := "🟢"
+		if allSubmitted {
+			courseIcon = "✅"
+		}
+
+		sb.WriteString(fmt.Sprintf("%s %s\n\n", courseIcon, results[0].CourseName))
+	}
+
 	for _, r := range results {
 		timeDiff := r.Deadline.Sub(now)
 		diffString := formatTimeDifference(timeDiff)
 		dlLocal := r.Deadline.In(location)
 
-		sb.WriteString(fmt.Sprintf("🟢 %s\n", r.Name))
+		// Individual deadline status
+		deadlineIcon := "    +"
+		if r.IsSubmitted {
+			deadlineIcon = "    ✅"
+		}
+
+		sb.WriteString(fmt.Sprintf("%s %s\n", deadlineIcon, r.Name))
 		sb.WriteString(fmt.Sprintf("    + %s - %s\n", dlLocal.Format("2006-01-02 15:04:05"), diffString))
+
+		// Add submission status text
+		if r.IsSubmitted {
+			sb.WriteString("    + 🎉 Đã nộp bài\n")
+		} else {
+			sb.WriteString("    + ⏰ Chưa nộp\n")
+		}
+
 		sb.WriteString(fmt.Sprintf("    + %s\n", r.URL))
 		sb.WriteString("\n")
 	}
