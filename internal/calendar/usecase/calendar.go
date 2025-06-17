@@ -104,6 +104,11 @@ func (uc implUseCase) GetFromCalendar(ctx context.Context) ([]models.Calendar, e
 					"1":  4,
 				}
 
+				// Skip deadline notifications if assignment is already submitted
+				if evt.IsSubmitted {
+					continue
+				}
+
 				timeDiff := eventTime.Sub(now)
 				for k, v := range timeHour {
 					if timeDiff.Hours() > 0 && timeDiff <= v && (firstTime || evt.TimeRemind <= timeRemind[k]) {
@@ -175,6 +180,74 @@ func (uc implUseCase) GetFromCalendar(ctx context.Context) ([]models.Calendar, e
 	}
 
 	return allCalendarOutputs, nil
+}
+
+func (uc implUseCase) CheckSubmissionStatus(ctx context.Context) error {
+	collection := uc.db.Collection("calendar_events")
+
+	// Find events where deadline > now and not submitted yet
+	now := time.Now()
+	filter := bson.M{
+		"deadline":            bson.M{"$gt": now},
+		"is_submitted":        bson.M{"$ne": true},
+		"submission_notified": bson.M{"$ne": true},
+	}
+
+	cursor, err := collection.Find(ctx, filter)
+	if err != nil {
+		uc.l.Error(ctx, "usecase.CheckSubmissionStatus.Find", err.Error())
+		return err
+	}
+	defer cursor.Close(ctx)
+
+	var events []models.Calendar
+	if err := cursor.All(ctx, &events); err != nil {
+		uc.l.Error(ctx, "usecase.CheckSubmissionStatus.CursorAll", err.Error())
+		return err
+	}
+
+	for _, event := range events {
+		// Check submission status via API
+		eventDetail, err := uc.notificationSrv.CheckEventSubmission(ctx, notification.EventSubmissionFilter{
+			EventID: event.ID,
+		})
+		if err != nil {
+			uc.l.Error(ctx, "usecase.CheckSubmissionStatus.CheckEventSubmission", err.Error())
+			continue
+		}
+
+		// If no action field, means it's submitted
+		isSubmitted := eventDetail.Action == nil
+
+		if isSubmitted && !event.SubmissionNotified {
+			// Send notification that assignment is submitted
+			messageText := fmt.Sprintf(
+				"<b>✅ Đã nộp:</b> %s - %s",
+				eventDetail.Name,
+				eventDetail.Course.FullName,
+			)
+
+			err := uc.telegramUC.SendMessage(ctx, messageText)
+			if err != nil {
+				uc.l.Error(ctx, "Failed to send submission notification to telegram", err)
+			} else {
+				// Update database to mark as submitted and notified
+				updateFilter := bson.M{"_id": event.ID}
+				update := bson.M{
+					"$set": bson.M{
+						"is_submitted":        true,
+						"submission_notified": true,
+					},
+				}
+				_, err = collection.UpdateOne(ctx, updateFilter, update)
+				if err != nil {
+					uc.l.Error(ctx, "usecase.CheckSubmissionStatus.UpdateOne", err.Error())
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 func (uc implUseCase) GetFromNotification(ctx context.Context, input calendar.GetFromNotificationInput) ([]models.Notification, error) {

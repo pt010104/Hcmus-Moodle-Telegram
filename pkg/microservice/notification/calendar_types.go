@@ -50,3 +50,43 @@ type ErrorException struct {
 	Link        string `json:"link,omitempty"`
 	MoreInfoURL string `json:"moreinfourl,omitempty"`
 }
+
+// Types for checking event submission status
+type EventSubmissionFilter struct {
+	EventID int
+}
+
+type EventSubmissionRequest struct {
+	Index      int                 `json:"index"`
+	MethodName string              `json:"methodname"`
+	Args       EventSubmissionArgs `json:"args"`
+}
+
+type EventSubmissionArgs struct {
+	EventID int `json:"eventid"`
+}
+
+type EventSubmissionResponse struct {
+	Error     bool            `json:"error"`
+	Data      json.RawMessage `json:"data,omitempty"`
+	Exception *ErrorException `json:"exception,omitempty"`
+}
+
+type EventSubmissionData struct {
+	Event EventDetail `json:"event"`
+}
+
+type EventDetail struct {
+	ID     int         `json:"id"`
+	Name   string      `json:"name"`
+	Course Course      `json:"course"`
+	Action *ActionInfo `json:"action,omitempty"` // nil means submitted, non-nil means not submitted
+}
+
+type ActionInfo struct {
+	Name          string `json:"name"`
+	URL           string `json:"url"`
+	ItemCount     int    `json:"itemcount"`
+	Actionable    bool   `json:"actionable"`
+	ShowItemCount bool   `json:"showitemcount"`
+}

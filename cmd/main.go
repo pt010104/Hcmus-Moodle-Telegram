@@ -84,7 +84,7 @@ func main() {
 		l.Fatal(ctx, "Failed to schedule GetFromCalendar", err.Error())
 	}
 
-	_, err = c.AddFunc("@every 3m", func() {
+	_, err = c.AddFunc("@every 10s", func() {
 		l.ResetLogger()
 		l.Info(ctx, "Scheduled Task", "Executing GetFromNotification")
 		notificationInput := calendar.GetFromNotificationInput{
@@ -101,6 +101,20 @@ func main() {
 	})
 	if err != nil {
 		l.Fatal(ctx, "Failed to schedule GetFromNotification", err.Error())
+	}
+
+	_, err = c.AddFunc("@every 2m", func() {
+		l.ResetLogger()
+		l.Info(ctx, "Scheduled Task", "Executing CheckSubmissionStatus")
+		err := calendarService.CheckSubmissionStatus(ctx)
+		if err != nil {
+			l.Error(ctx, "CheckSubmissionStatus", err.Error())
+		} else {
+			l.Info(ctx, "CheckSubmissionStatus", "Executed successfully")
+		}
+	})
+	if err != nil {
+		l.Fatal(ctx, "Failed to schedule CheckSubmissionStatus", err.Error())
 	}
 
 	c.Start()

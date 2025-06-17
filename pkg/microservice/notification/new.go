@@ -9,6 +9,7 @@ import (
 type UseCase interface {
 	GetFromCalendar(ctx context.Context, input GetFromCalendarFilter) (Calendar, error)
 	GetFromNotification(ctx context.Context, input GetFromNotificationFilter) (Notification, error)
+	CheckEventSubmission(ctx context.Context, input EventSubmissionFilter) (EventDetail, error)
 }
 
 type implUseCase struct {

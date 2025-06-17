@@ -9,4 +9,5 @@ import (
 type UseCase interface {
 	GetFromCalendar(ctx context.Context) ([]models.Calendar, error)
 	GetFromNotification(ctx context.Context, input GetFromNotificationInput) ([]models.Notification, error)
+	CheckSubmissionStatus(ctx context.Context) error
 }
