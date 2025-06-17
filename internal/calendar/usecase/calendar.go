@@ -89,19 +89,17 @@ func (uc implUseCase) GetFromCalendar(ctx context.Context) ([]models.Calendar, e
 					}
 				}
 
-				timeHour := map[string]time.Duration{
-					"24": 24 * time.Hour,
-					"12": 12 * time.Hour,
-					"6":  6 * time.Hour,
-					"3":  3 * time.Hour,
-					"1":  1 * time.Hour,
-				}
-				timeRemind := map[string]int{
-					"24": 0,
-					"12": 1,
-					"6":  2,
-					"3":  3,
-					"1":  4,
+				reminderIntervals := []struct {
+					key      string
+					duration time.Duration
+					remind   int
+				}{
+					{"30m", 30 * time.Minute, 5},
+					{"1", 1 * time.Hour, 4},
+					{"3", 3 * time.Hour, 3},
+					{"6", 6 * time.Hour, 2},
+					{"12", 12 * time.Hour, 1},
+					{"24", 24 * time.Hour, 0},
 				}
 
 				// Skip deadline notifications if assignment is already submitted
@@ -110,29 +108,50 @@ func (uc implUseCase) GetFromCalendar(ctx context.Context) ([]models.Calendar, e
 				}
 
 				timeDiff := eventTime.Sub(now)
-				for k, v := range timeHour {
-					if timeDiff.Hours() > 0 && timeDiff <= v && (firstTime || evt.TimeRemind <= timeRemind[k]) {
-						messageText := fmt.Sprintf(
-							"<b>Thông báo:</b> có deadline trong  %s tiếng nữa\n"+
-								"<b>Môn:</b> %s\n"+
-								"<b>Deadline:</b> %s\n"+
-								"%s",
-							k,
-							event.Course.FullName,
-							eventTime.Format("2006-01-02 15:04:05"),
-							event.URL,
-						)
 
-						err := uc.telegramUC.SendMessage(ctx, messageText)
-						if err != nil {
-							uc.l.Error(ctx, "Failed to send deadline approaching message to telegram", err)
-						}
+				// Find the appropriate reminder interval (smallest interval that fits)
+				var matchedInterval *struct {
+					key      string
+					duration time.Duration
+					remind   int
+				}
 
-						evt.TimeRemind = timeRemind[k] + 1
-						_, err = collection.UpdateOne(ctx, filter, bson.M{"$set": evt})
-						if err != nil {
-							uc.l.Error(ctx, "usecase.GetFromCalendar.UpdateOne", err.Error())
-						}
+				for _, interval := range reminderIntervals {
+					if timeDiff.Hours() > 0 && timeDiff <= interval.duration {
+						matchedInterval = &interval
+						break
+					}
+				}
+
+				// Send notification only if we found a matching interval and haven't sent this level before
+				if matchedInterval != nil && (firstTime || evt.TimeRemind <= matchedInterval.remind) {
+					var timeUnit string
+					if matchedInterval.key == "30m" {
+						timeUnit = "30 phút"
+					} else {
+						timeUnit = matchedInterval.key + " tiếng"
+					}
+
+					messageText := fmt.Sprintf(
+						"<b>Thông báo:</b> có deadline trong %s nữa\n"+
+							"<b>Môn:</b> %s\n"+
+							"<b>Deadline:</b> %s\n"+
+							"%s",
+						timeUnit,
+						event.Course.FullName,
+						eventTime.Format("2006-01-02 15:04:05"),
+						event.URL,
+					)
+
+					err := uc.telegramUC.SendMessage(ctx, messageText)
+					if err != nil {
+						uc.l.Error(ctx, "Failed to send deadline approaching message to telegram", err)
+					}
+
+					evt.TimeRemind = matchedInterval.remind + 1
+					_, err = collection.UpdateOne(ctx, filter, bson.M{"$set": evt})
+					if err != nil {
+						uc.l.Error(ctx, "usecase.GetFromCalendar.UpdateOne", err.Error())
 					}
 				}
 
