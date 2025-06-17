@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pt010104/Hcmus-Moodle-Telegram/internal/calendar"
@@ -94,12 +95,13 @@ func (uc implUseCase) GetFromCalendar(ctx context.Context) ([]models.Calendar, e
 					duration time.Duration
 					remind   int
 				}{
-					{"30m", 30 * time.Minute, 5},
-					{"1", 1 * time.Hour, 4},
-					{"3", 3 * time.Hour, 3},
-					{"6", 6 * time.Hour, 2},
-					{"12", 12 * time.Hour, 1},
-					{"24", 24 * time.Hour, 0},
+					{"30m", 30 * time.Minute, 6},
+					{"1", 1 * time.Hour, 5},
+					{"3", 3 * time.Hour, 4},
+					{"6", 6 * time.Hour, 3},
+					{"12", 12 * time.Hour, 2},
+					{"24", 24 * time.Hour, 1},
+					{"3d", 3 * 24 * time.Hour, 0},
 				}
 
 				// Skip deadline notifications if assignment is already submitted
@@ -125,19 +127,15 @@ func (uc implUseCase) GetFromCalendar(ctx context.Context) ([]models.Calendar, e
 
 				// Send notification only if we found a matching interval and haven't sent this level before
 				if matchedInterval != nil && (firstTime || evt.TimeRemind <= matchedInterval.remind) {
-					var timeUnit string
-					if matchedInterval.key == "30m" {
-						timeUnit = "30 phút"
-					} else {
-						timeUnit = matchedInterval.key + " tiếng"
-					}
+					// Format exact time remaining
+					exactTimeRemaining := uc.formatTimeDifference(timeDiff)
 
 					messageText := fmt.Sprintf(
 						"<b>Thông báo:</b> có deadline trong %s nữa\n"+
 							"<b>Môn:</b> %s\n"+
 							"<b>Deadline:</b> %s\n"+
 							"%s",
-						timeUnit,
+						exactTimeRemaining,
 						event.Course.FullName,
 						eventTime.Format("2006-01-02 15:04:05"),
 						event.URL,
@@ -331,4 +329,36 @@ func (uc implUseCase) GetFromNotification(ctx context.Context, input calendar.Ge
 
 	return notificationOutputs, nil
 
+}
+
+// formatTimeDifference formats duration into Vietnamese readable format
+func (uc implUseCase) formatTimeDifference(d time.Duration) string {
+	if d < 0 {
+		d = -d
+	}
+
+	days := int(d.Hours()) / 24
+	hours := int(d.Hours()) % 24
+	minutes := int(d.Minutes()) % 60
+	seconds := int(d.Seconds()) % 60
+
+	var parts []string
+	if days > 0 {
+		parts = append(parts, fmt.Sprintf("%d ngày", days))
+	}
+	if hours > 0 {
+		parts = append(parts, fmt.Sprintf("%d giờ", hours))
+	}
+	if minutes > 0 {
+		parts = append(parts, fmt.Sprintf("%d phút", minutes))
+	}
+	if seconds > 0 && days == 0 && hours == 0 {
+		parts = append(parts, fmt.Sprintf("%d giây", seconds))
+	}
+
+	if len(parts) == 0 {
+		return "0 giây"
+	}
+
+	return strings.Join(parts, " ")
 }
